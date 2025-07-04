@@ -1,0 +1,13 @@
+dotenv
+langchain
+langchain-core
+langchain-groq
+ipykernel
+fastapi
+pydantic
+typing
+uvicorn
+motor
+python-jose
+passlib[bcrypt]
+httpx
