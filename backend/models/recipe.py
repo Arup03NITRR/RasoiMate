@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Literal
 
 class RecipeRequest(BaseModel):
@@ -15,10 +15,11 @@ class RecipeRequest(BaseModel):
                 "Healthy / Low Oil",
                 "Beverages"
             ]
-    num_people: int
+    num_people: int = 1
     language: Literal[
         "English", "Hindi (हिन्दी)", "Bengali (বাংলা)", "Telugu (తెలుగు)",
         "Marathi (मराठी)", "Tamil (தமிழ்)", "Gujarati (ગુજરાતી)",
         "Malayalam (മലയാളം)", "Kannada (ಕನ್ನಡ)", "Punjabi (ਪੰਜਾਬੀ)", "Urdu (اُردُو)"
     ]
     model: Literal["Llama3", "Gemma2", "Groq"]
+

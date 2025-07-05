@@ -3,11 +3,13 @@ langchain
 langchain-core
 langchain-groq
 ipykernel
-fastapi
+fastapi[all]
 pydantic
 typing
 uvicorn
 motor
-python-jose
+python-jose[cryptography]
 passlib[bcrypt]
-httpx
+pydantic[email]
+certifi
+pymongo
