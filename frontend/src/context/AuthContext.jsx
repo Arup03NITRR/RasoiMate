@@ -7,23 +7,23 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   const [userEmail, setUserEmail] = useState(null);
-  const [userName, setUserName] = useState(null); // This is the state we're tracking
+  const [userName, setUserName] = useState(null);
   const [token, setToken] = useState(null);
+  const [loading, setLoading] = useState(true); // NEW: loading state
 
-  // Sync state from localStorage on mount and listen for changes (other tabs)
   useEffect(() => {
     const syncAuthFromStorage = () => {
-      const storedEmail = localStorage.getItem('user');
-      const storedName = localStorage.getItem('username'); // Fetch username from localStorage
-      const storedToken = localStorage.getItem('token');
+      const storedEmail = sessionStorage.getItem('user');
+      const storedName = sessionStorage.getItem('username');
+      const storedToken = sessionStorage.getItem('token');
 
       setUserEmail(storedEmail);
-      setUserName(storedName); // Update userName state from localStorage
+      setUserName(storedName);
       setToken(storedToken);
+      setLoading(false); // Done loading after sync
     };
 
     syncAuthFromStorage();
-
     window.addEventListener('storage', syncAuthFromStorage);
 
     return () => {
@@ -32,35 +32,33 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (email, token, name) => {
-    // --- ADDED FOR DEBUGGING ---
     console.log('AuthContext: login function called with:', { email, token, name });
-    // --- END DEBUGGING ---
 
-    localStorage.setItem('user', email);
-    localStorage.setItem('token', token);
-    localStorage.setItem('username', name); // Store the username in localStorage
+    sessionStorage.setItem('user', email);
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('username', name);
 
     setUserEmail(email);
     setToken(token);
-    setUserName(name); // Set the userName state
-
-    navigate('/generate');
+    setUserName(name);
   };
 
   const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    localStorage.removeItem('username'); // Clear username from localStorage
+    sessionStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('username');
 
     setUserEmail(null);
     setToken(null);
-    setUserName(null); // Clear userName state
+    setUserName(null);
 
     navigate('/login');
   };
 
   return (
-    <AuthContext.Provider value={{ userEmail, userName, token, login, logout }}>
+    <AuthContext.Provider
+      value={{ userEmail, userName, token, login, logout, loading }} // include loading
+    >
       {children}
     </AuthContext.Provider>
   );

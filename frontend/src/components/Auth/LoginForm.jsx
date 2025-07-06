@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const LoginForm = () => {
   const { login } = useAuth();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // loading state
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -15,6 +17,7 @@ const LoginForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       const res = await axios.post('http://localhost:8000/auth/login', {
@@ -22,16 +25,14 @@ const LoginForm = () => {
         password: form.password,
       });
 
-      // --- THE CORRECTION IS HERE ---
-      // Change 'res.data.username' to 'res.data.userName' to match your backend's key
-      const userNameFromBackend = res.data.userName; // Corrected: capital 'N'
-
-      // Pass the username as the third argument to the login function
+      const userNameFromBackend = res.data.userName;
       login(form.email, res.data.access_token, userNameFromBackend);
-
+      navigate('/');
     } catch (err) {
       console.error('Login error:', err.response?.data || err.message);
       setError('Invalid credentials');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,9 +78,14 @@ const LoginForm = () => {
 
         <button
           type="submit"
-          className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors duration-200"
+          disabled={loading}
+          className={`w-full py-2 px-4 font-semibold rounded-xl transition-colors duration-200 ${
+            loading
+              ? 'bg-gray-400 cursor-not-allowed text-white'
+              : 'bg-purple-600 hover:bg-purple-700 text-white'
+          }`}
         >
-          Login
+          {loading ? 'Logging in...' : 'Login'}
         </button>
 
         <div className="mt-4 flex justify-between text-sm text-purple-700">

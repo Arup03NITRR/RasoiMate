@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom'; // Import for navigation
+import { useNavigate, useLocation } from 'react-router-dom';
 import Heading from '../components/RecipePage/Heading';
 import IngredientsInput from '../components/RecipePage/IngredientsInput';
 import CuisineSelector from '../components/RecipePage/CuisineSelector';
 import PeopleInput from '../components/RecipePage/PeopleInput';
 import LanguageSelect from '../components/RecipePage/LanguageSelect';
 import ModelSelector from '../components/RecipePage/ModelSelector';
-import GenerateButton from '../components/RecipePage/GenerateButton'; // This is the simplified one
+import GenerateButton from '../components/RecipePage/GenerateButton';
 import RecipeOutput from '../components/RecipePage/RecipeOutput';
 import axios from 'axios';
 
@@ -20,16 +20,21 @@ const RecipePage = () => {
   const [recipe, setRecipe] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { token, userEmail } = useAuth(); // Also get userEmail for auth check
+  const { token, userEmail } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleGenerate = async () => {
-    // 1. Authentication Check (moved here from GenerateButton)
     if (!userEmail || !token) {
-        alert('You must be logged in to generate a recipe.');
-        navigate('/login', { state: { from: location.pathname } });
-        return;
+      // Redirect to login and pass current location
+      navigate('/login', { state: { from: location.pathname } });
+      return;
+    }
+
+    // Basic input validation
+    if (!ingredients.trim() || !selectedCuisine || !selectedModel) {
+      alert('Please fill in all required fields: Ingredients, Cuisine, and Model.');
+      return;
     }
 
     setLoading(true);
@@ -37,12 +42,11 @@ const RecipePage = () => {
       const response = await axios.post(
         'http://localhost:8000/recipe/generate',
         {
-          // --- CRITICAL CORRECTION HERE: Match Backend's RecipeInput Schema ---
-          input: { // Backend expects an 'input' key
-            ingredients: ingredients, // Send as string, backend will handle split
-            cuisine: selectedCuisine, // Backend expects 'cuisine', not 'cuisine_type'
-            num_people: people,       // Backend expects 'num_people'
-            language: language,
+          input: {
+            ingredients,
+            cuisine: selectedCuisine,
+            num_people: people,
+            language,
             model: selectedModel,
           },
         },
@@ -56,11 +60,11 @@ const RecipePage = () => {
     } catch (err) {
       console.error('Failed to generate recipe:', err.response?.data || err.message);
       if (err.response?.status === 401) {
-        alert('Session expired or unauthorized. Please log in again.');
-        navigate('/login', { state: { from: location.pathname } }); // Redirect on 401
+        alert('Session expired. Please log in again.');
+        navigate('/login', { state: { from: location.pathname } });
       } else {
+        alert('Something went wrong. Please try again.');
         setRecipe('Error generating recipe. Please try again.');
-        alert('Something went wrong. Check console for details.');
       }
     } finally {
       setLoading(false);
@@ -76,10 +80,13 @@ const RecipePage = () => {
         <PeopleInput people={people} setPeople={setPeople} />
         <LanguageSelect language={language} setLanguage={setLanguage} />
         <ModelSelector selectedModel={selectedModel} setSelectedModel={setSelectedModel} />
-        
-        {/* --- CRITICAL CHANGE HERE: Pass handleGenerate as onClick prop --- */}
-        <GenerateButton onClick={handleGenerate} loading={loading} />
-        
+
+        <GenerateButton
+          onClick={handleGenerate}
+          loading={loading}
+          disabled={!ingredients.trim() || !selectedCuisine || !selectedModel}
+        />
+
         <RecipeOutput recipe={recipe} />
       </div>
     </div>

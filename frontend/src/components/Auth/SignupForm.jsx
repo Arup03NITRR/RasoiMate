@@ -5,6 +5,7 @@ import { useNavigate, Link } from 'react-router-dom';
 const SignupForm = () => {
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false); // New: loading state
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -14,13 +15,16 @@ const SignupForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true); // Start loading
 
     try {
-      await axios.post('http://localhost:8000/auth/register', form); // ✅ ensure route is correct
+      await axios.post('http://localhost:8000/auth/register', form);
       navigate('/login');
     } catch (err) {
       console.error('Signup error:', err.response?.data || err.message);
       setError('Email already exists');
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -81,9 +85,14 @@ const SignupForm = () => {
 
         <button
           type="submit"
-          className="w-full py-2 px-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-colors duration-200"
+          disabled={loading}
+          className={`w-full py-2 px-4 font-semibold rounded-xl transition-colors duration-200 ${
+            loading
+              ? 'bg-gray-400 cursor-not-allowed text-white'
+              : 'bg-purple-600 hover:bg-purple-700 text-white'
+          }`}
         >
-          Sign Up
+          {loading ? 'Creating account...' : 'Sign Up'}
         </button>
 
         <div className="mt-4 text-center text-sm text-purple-700">

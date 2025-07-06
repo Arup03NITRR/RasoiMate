@@ -8,7 +8,7 @@ from utils import get_current_user
 from chains import get_recipe_chain
 from typing import List
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/recipe", tags=["Recipe"])
 
@@ -26,8 +26,7 @@ async def generate_recipe(data: RecipeInput, user_email: str = Depends(get_curre
             "language": data.input.language
         })
         generated = response.content
-
-        current_time = datetime.utcnow()
+        current_time = datetime.now(timezone.utc)
 
         result = await db.recipes.insert_one({
             "email": user_email,

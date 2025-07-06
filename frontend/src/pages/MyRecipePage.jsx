@@ -6,15 +6,18 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
 const MyRecipePage = () => {
-  const { token, userEmail } = useAuth();
+  const { token, userEmail, loading: authLoading } = useAuth(); // get auth loading
   const navigate = useNavigate();
+
   const [userRecipes, setUserRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [deleting, setDeleting] = useState(false); // New state for delete loading
+  const [deletingIds, setDeletingIds] = useState({});
 
   useEffect(() => {
     const fetchMyRecipes = async () => {
+      if (authLoading) return; // wait for auth to load
+
       if (!token) {
         navigate('/login', { state: { from: '/my-recipes' } });
         return;
@@ -40,26 +43,22 @@ const MyRecipePage = () => {
     };
 
     fetchMyRecipes();
-  }, [token, navigate]);
+  }, [token, authLoading, navigate]);
 
-  // --- NEW FUNCTION FOR DELETING RECIPE ---
   const handleDeleteRecipe = async (recipeId, event) => {
-    event.stopPropagation(); // Prevent Link from triggering when clicking delete button
-    event.preventDefault(); // Prevent default link behavior
+    event.stopPropagation();
+    event.preventDefault();
 
     if (!token) {
       navigate('/login', { state: { from: '/my-recipes' } });
       return;
     }
 
-    // Optional: Add a confirmation dialog
-    if (!window.confirm('Are you sure you want to delete this recipe? This action cannot be undone.')) {
-      return; // User cancelled the deletion
-    }
+    if (!window.confirm('Are you sure you want to delete this recipe?')) return;
 
     try {
-      setDeleting(true); // Set deleting state to true
-      setError(''); // Clear any previous errors
+      setDeletingIds(prev => ({ ...prev, [recipeId]: true }));
+      setError('');
 
       await axios.delete(`http://localhost:8000/recipe/${recipeId}`, {
         headers: {
@@ -67,8 +66,7 @@ const MyRecipePage = () => {
         },
       });
 
-      // If successful, remove the recipe from the local state
-      setUserRecipes(prevRecipes => prevRecipes.filter(recipe => recipe._id !== recipeId && recipe._id !== recipeId));
+      setUserRecipes(prevRecipes => prevRecipes.filter(recipe => recipe._id !== recipeId));
       alert('Recipe deleted successfully!');
     } catch (err) {
       console.error('Failed to delete recipe:', err.response?.data || err.message);
@@ -79,19 +77,19 @@ const MyRecipePage = () => {
         setError('Recipe not found or already deleted.');
       }
     } finally {
-      setDeleting(false); // Reset deleting state
+      setDeletingIds(prev => ({ ...prev, [recipeId]: false }));
     }
   };
-  // --- END NEW FUNCTION ---
+
+  
 
   const formatDateTime = (isoString) => {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleString();
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
         <p className="text-xl text-gray-700">Loading your recipes...</p>
@@ -113,34 +111,41 @@ const MyRecipePage = () => {
 
       {userRecipes.length === 0 ? (
         <p className="text-center text-gray-600 text-lg">
-          You haven't generated any recipes yet. Go to the <Link to="/recipe" className="text-purple-600 hover:underline">Recipe Generator</Link> to create one!
+          You haven't generated any recipes yet. Go to the{' '}
+          <Link to="/recipe" className="text-purple-600 hover:underline">
+            Recipe Generator
+          </Link>{' '}
+          to create one!
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {userRecipes.map((recipe, index) => {
-            const recipeIdentifier = recipe._id || recipe._id;
+            const recipeId = recipe._id;
 
             return (
               <Link
-                key={recipeIdentifier || index}
-                to={`/my-recipes/${recipeIdentifier}`}
+                key={recipeId}
+                to={`/my-recipes/${recipeId}`}
                 className="bg-white rounded-xl shadow-lg p-6 flex flex-col justify-between hover:shadow-xl transition-shadow duration-200 cursor-pointer"
               >
                 <div>
-                  <div className="flex justify-between items-start mb-2"> {/* New flex container */}
+                  <div className="flex justify-between items-start mb-2">
                     <h2 className="text-xl font-semibold text-purple-700">Recipe {index + 1}</h2>
-                    {/* --- NEW DELETE BUTTON --- */}
                     <button
-                      onClick={(e) => handleDeleteRecipe(recipeIdentifier, e)}
-                      disabled={deleting} // Disable button during deletion
-                      className="ml-4 px-3 py-1 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition-colors duration-200"
+                      onClick={(e) => handleDeleteRecipe(recipeId, e)}
+                      disabled={!!deletingIds[recipeId]}
+                      className={`ml-4 px-3 py-1 text-white rounded-md text-sm transition-colors duration-200 ${
+                        deletingIds[recipeId]
+                          ? 'bg-gray-400 cursor-not-allowed'
+                          : 'bg-red-500 hover:bg-red-600'
+                      }`}
                     >
-                      {deleting ? 'Deleting...' : 'Delete'}
+                      {deletingIds[recipeId] ? 'Deleting...' : 'Delete'}
                     </button>
-                    {/* --- END NEW DELETE BUTTON --- */}
                   </div>
                   <p className="text-sm text-gray-500 mb-4">
-                    Generated on: <span className="font-medium text-gray-600">{formatDateTime(recipe.generated_at)}</span>
+                    Generated on:{' '}
+                    <span className="font-medium text-gray-600">{formatDateTime(recipe.generated_at)}</span>
                   </p>
                   <p className="text-gray-700 mb-2">
                     <span className="font-medium">Ingredients:</span> {recipe.input.ingredients}
@@ -148,8 +153,11 @@ const MyRecipePage = () => {
                   <p className="text-gray-700 mb-2">
                     <span className="font-medium">Cuisine:</span> {recipe.input.cuisine}
                   </p>
-                  <p className="text-gray-700 mb-4">
+                  <p className="text-gray-700 mb-2">
                     <span className="font-medium">Serves:</span> {recipe.input.num_people}
+                  </p>
+                  <p className="text-gray-700 mb-4">
+                    <span className="font-medium">Language:</span> {recipe.input.language}
                   </p>
                 </div>
                 <div className="mt-4 text-sm text-gray-600 overflow-hidden text-ellipsis whitespace-nowrap">

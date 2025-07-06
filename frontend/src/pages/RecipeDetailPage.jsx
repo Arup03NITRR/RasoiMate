@@ -4,11 +4,11 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import RecipeOutput from '../components/RecipePage/RecipeOutput'; // Re-use this component
+import RecipeOutput from '../components/RecipePage/RecipeOutput';
 
 const RecipeDetailPage = () => {
-  const { recipeId } = useParams(); // Get the recipeId from the URL
-  const { token, userEmail } = useAuth();
+  const { recipeId } = useParams();
+  const { token, userEmail, loading: authLoading } = useAuth(); // Added authLoading
   const navigate = useNavigate();
 
   const [recipe, setRecipe] = useState(null);
@@ -17,8 +17,9 @@ const RecipeDetailPage = () => {
 
   useEffect(() => {
     const fetchRecipeDetails = async () => {
+      if (authLoading) return; // Wait for auth to load
+
       if (!token || !userEmail) {
-        // Redirect to login if not authenticated
         navigate('/login', { state: { from: `/my-recipes/${recipeId}` } });
         return;
       }
@@ -48,16 +49,15 @@ const RecipeDetailPage = () => {
     };
 
     fetchRecipeDetails();
-  }, [recipeId, token, userEmail, navigate]); // Dependencies for useEffect
+  }, [recipeId, token, userEmail, authLoading, navigate]);
 
   const formatDateTime = (isoString) => {
     if (!isoString) return 'N/A';
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
-    return date.toLocaleString();
+    return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleString();
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-gray-100">
         <p className="text-xl text-gray-700">Loading recipe details...</p>
@@ -67,7 +67,7 @@ const RecipeDetailPage = () => {
 
   if (error) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100">
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 text-center px-4">
         <p className="text-xl text-red-500">{error}</p>
         <Link to="/my-recipes" className="mt-4 text-purple-600 hover:underline">Back to My Recipes</Link>
       </div>
@@ -76,7 +76,7 @@ const RecipeDetailPage = () => {
 
   if (!recipe) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-100">
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gray-100 text-center px-4">
         <p className="text-xl text-gray-700">No recipe found.</p>
         <Link to="/my-recipes" className="mt-4 text-purple-600 hover:underline">Back to My Recipes</Link>
       </div>
@@ -91,25 +91,13 @@ const RecipeDetailPage = () => {
           <Link to="/my-recipes" className="text-purple-600 hover:underline">&larr; Back to My Recipes</Link>
         </div>
 
-        <div className="border-b pb-4 mb-4">
-          <p className="text-md text-gray-600 mb-2">
-            <span className="font-semibold">Generated On:</span> {formatDateTime(recipe.generated_at)}
-          </p>
-          <p className="text-md text-gray-600 mb-2">
-            <span className="font-semibold">Cuisine:</span> {recipe.input.cuisine}
-          </p>
-          <p className="text-md text-gray-600 mb-2">
-            <span className="font-semibold">Serves:</span> {recipe.input.num_people} people
-          </p>
-          <p className="text-md text-gray-600">
-            <span className="font-semibold">Ingredients:</span> {recipe.input.ingredients}
-          </p>
-          <p className="text-md text-gray-600">
-            <span className="font-semibold">Model Used:</span> {recipe.input.model}
-          </p>
-          <p className="text-md text-gray-600">
-            <span className="font-semibold">Language:</span> {recipe.input.language}
-          </p>
+        <div className="border-b pb-4 mb-4 text-gray-600 space-y-2">
+          <p><span className="font-semibold">Generated On:</span> {formatDateTime(recipe.generated_at)}</p>
+          <p><span className="font-semibold">Cuisine:</span> {recipe.input.cuisine}</p>
+          <p><span className="font-semibold">Serves:</span> {recipe.input.num_people} people</p>
+          <p><span className="font-semibold">Ingredients:</span> {recipe.input.ingredients}</p>
+          <p><span className="font-semibold">Model Used:</span> {recipe.input.model}</p>
+          <p><span className="font-semibold">Language:</span> {recipe.input.language}</p>
         </div>
 
         <h2 className="text-2xl font-semibold text-purple-700 mb-4">The Generated Recipe:</h2>
