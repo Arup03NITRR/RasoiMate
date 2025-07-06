@@ -8,6 +8,7 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import MyRecipePage from "./pages/MyRecipePage";
 import RecipeDetailPage from "./pages/RecipeDetailPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
 import ProtectedRoute from './components/static/ProtectedRoute';
 
 function App() {
@@ -29,7 +30,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/my-recipes" element={<MyRecipePage />} />
-         <Route path="/my-recipes/:recipeId" element={<RecipeDetailPage />} />
+        <Route path="/my-recipes/:recipeId" element={<RecipeDetailPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
         <Route path="*" element={<HomePage />} />
       </Routes>
     </>
